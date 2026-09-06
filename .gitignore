@@ -1,0 +1,22 @@
+node_modules/
+dist/
+.env
+*.log
+
+# SQLite
+backend/data/*.sqlite
+backend/data/*.sqlite-*
+backend/data/*.db
+
+# Uploads
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# macOS artiklari (AppleDouble)
+._*
+.DS_Store

@@ -1,0 +1,48 @@
+# BeyLink — Caddy edge site bloğu (§G6: paylaşımlı VPS Caddy örneğine dahil edilir; bu tek
+# sunucuda başka projelerin (ör. NoLnk) site bloklarıyla YAN YANA durur, aynı Caddy süreci
+# 80+443'ü dinler). `docker-compose.yml`'deki `edge` DIŞ (external) ağına bu Caddy örneği de
+# katılmalı ki `beylink-web`/`beylink-api` container adlarını çözebilsin.
+#
+# PORTLAR — DEĞİŞTİRME: buradaki `beylink-api:4000` ve `beylink-web:80` KONTEYNER-İÇİ portlardır
+# (edge ağı üzerinden container adıyla erişilir). Yerel dev portları (4501/5501) ve host'a publish
+# edilen port (8501:80) ile İLGİSİZDİR — Caddy container-to-container konuşur, host'u atlar.
+# api konteyneri compose'ta PORT=4000 ile açılır; web nginx konteyner-içi 80'i dinler.
+#
+# Kurulum (VPS'te bir kez):
+#   docker network create edge   # henüz yoksa
+#   caddy örneği de `networks: [edge]` ile çalışmalı (bu repo'nun dışında, paylaşımlı Caddy stack'i)
+#
+# Bu dosyanın içeriği paylaşımlı Caddy'nin ANA Caddyfile'ına `import` edilir veya elle eklenir.
+
+# --- Global blok — ANA Caddyfile'da YALNIZ BİR KEZ tanımlanır (birden çok proje varsa tekrarlanmaz) ---
+# {
+#   on_demand_tls {
+#     ask http://beylink-api:4000/api/domains/tls-check
+#     interval 2m
+#     burst 5
+#   }
+# }
+
+# BeyLink'in kendi domaini — standart otomatik TLS (Let's Encrypt), on-demand DEĞİL
+# (yalnız kullanıcıların EKLEDİĞİ özel domainler on-demand+ask kapısından geçer).
+beylink.org, www.beylink.org {
+	encode gzip
+	reverse_proxy beylink-web:80
+}
+
+# Kullanıcıların özel alan adları (apex + www; A1) — herhangi bir hostname buraya TLS handshake'i
+# ile düşebilir; sertifika yalnız `ask` kapısı 200 dönerse verilir (A2/A3: domain aktif +
+# doğrulanmış + sahibinin hâlâ brandedDomain cap'i var → fail-closed, sertifika taşkını önlenir).
+:443 {
+	tls {
+		on_demand
+	}
+
+	encode gzip
+
+	# www.<domain> → apex <domain> kanonik yönlendirme (A6 www↔apex)
+	@www header_regexp wwwHost Host ^www\.(.+)$
+	redir @www https://{re.wwwHost.1}{uri} permanent
+
+	reverse_proxy beylink-web:80
+}

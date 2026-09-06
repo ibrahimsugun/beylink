@@ -1,0 +1,19 @@
+{
+  "name": "BeyLink — Tek link, tüm bağlantıların",
+  "short_name": "BeyLink",
+  "description": "Tüm bağlantılarını tek bir sayfada topla, özelleştir ve paylaş.",
+  "start_url": "/?utm_source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#6D3BEA",
+  "background_color": "#F6F8FB",
+  "lang": "tr-TR",
+  "dir": "ltr",
+  "categories": ["productivity", "social", "business"],
+  "icons": [
+    { "src": "/favicon.svg",         "sizes": "any",     "type": "image/svg+xml", "purpose": "any"      },
+    { "src": "/favicon-32.png",      "sizes": "32x32",   "type": "image/png",     "purpose": "any"      },
+    { "src": "/apple-touch-icon.png","sizes": "180x180", "type": "image/png",     "purpose": "any maskable" }
+  ]
+}

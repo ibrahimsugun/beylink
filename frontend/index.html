@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#6D3BEA" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1B2340" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
+
+    <!-- Favicon set (SVG öncelikli; PNG fallback; iOS ana ekran ikonu) -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="mask-icon" href="/favicon.svg" color="#6D3BEA" />
+    <meta name="msapplication-TileColor" content="#6D3BEA" />
+
+    <!-- PWA manifest — ana ekrana ekleme, tam ekran destek -->
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- RSS feed discovery — tarayıcı/okuyucular blog beslemesini otomatik bulur -->
+    <link rel="alternate" type="application/rss+xml" title="BeyLink Blog" href="/feed.xml" />
+
+    <title>BeyLink — Tek link, tüm bağlantıların</title>
+    <meta name="description" content="Tüm bağlantılarını tek bir sayfada topla, özelleştir ve paylaş. BeyLink ile link-in-bio profilini dakikalar içinde oluştur." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="BeyLink" />
+    <meta property="og:title" content="BeyLink — Tek link, tüm bağlantıların" />
+    <meta property="og:description" content="Tüm bağlantılarını tek bir sayfada topla, özelleştir ve paylaş." />
+    <meta property="og:image" content="/og-image.png" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:image" content="/og-image.png" />
+    <!-- Font yükleme optimizasyonu (Faz 5 CWV) -->
+    <!-- dns-prefetch: preconnect'ten önce DNS çözümlemesini tetikler (fallback) -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+    <!-- preconnect: TCP + TLS bağlantısını erken kurar -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- preload as="style" + rel="stylesheet" — CSS erken keşfedilir, JS/parser'ı beklemez.
+         onload ile media=all'a döndürerek render-blocking'i azaltır; noscript fallback ile JS kapalı da çalışır. -->
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap"
+      />
+    </noscript>
+    <!-- Logo mark (header'da anında görünür — küçük SVG) -->
+    <link rel="preload" as="image" href="/logo-mark.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "beylink",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BeyLink — tek komutla backend + frontend",
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c magenta,cyan \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
+    "install:all": "npm install && npm --prefix backend install && npm --prefix frontend install",
+    "setup": "npm run install:all && npm --prefix backend run migrate && npm --prefix backend run seed",
+    "migrate": "npm --prefix backend run migrate",
+    "seed": "npm --prefix backend run seed",
+    "build": "npm --prefix frontend run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}

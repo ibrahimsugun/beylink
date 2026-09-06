@@ -1,0 +1,128 @@
+services:
+  api:
+    build: ./backend
+    container_name: beylink-api
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      JWT_SECRET: ${JWT_SECRET:-please-change-this-secret}
+      DB_PATH: /app/data/beylink.sqlite
+      UPLOADS_DIR: /app/uploads
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN:-*}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8501}
+      # Sitemap/robots/feed için sabit canlı URL (Google Search Console indeksi bunu okur)
+      SITEMAP_BASE_URL: ${SITEMAP_BASE_URL:-https://beylink.org}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-admin@example.com}
+      # E-posta. Önerilen: RESEND_API_KEY (Resend). Alternatif: MAIL_ENABLED=true + SMTP_*.
+      # NODE_ENV=production olduğundan, mail yapılandırılmasa bile demo token yanıtta ASLA ifşa olmaz.
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      MAIL_FROM: "${MAIL_FROM:-BeyLink <onboarding@resend.dev>}"
+      MAIL_REPLY_TO: ${MAIL_REPLY_TO:-}
+      MAIL_ENABLED: ${MAIL_ENABLED:-false}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      APP_URL: ${APP_URL:-http://localhost:8501}
+      # Özel alan adı (branded domain) — Caddy'nin `ask` kapısı ve resolveHost middleware bunları kullanır.
+      APP_HOSTNAMES: ${APP_HOSTNAMES:-beylink.org,www.beylink.org,localhost,127.0.0.1}
+      BRANDED_DOMAIN_SERVER_IP: ${BRANDED_DOMAIN_SERVER_IP:-}
+      BRANDED_DOMAIN_CNAME_TARGET: ${BRANDED_DOMAIN_CNAME_TARGET:-cname.beylink.org}
+      # USDT (TRC-20) ödeme — self-custody (private key sunucuda YOK, yalnız alıcı adres). Bu değişkenler
+      # GEÇİLMEZSE walletAddress boş kalır → poller kapalı + gerçek "Kredi Yükle" 503 döner ve prod'da
+      # DEMO_PAYMENTS varsayılan false → hiçbir plan satın alınamaz. Gerçek ödeme için TRC20_WALLET_ADDRESS
+      # (+ prod'da TRC20_MIN_CONFIRMATIONS ~19) MUTLAKA .env'de doldurulmalı.
+      TRC20_WALLET_ADDRESS: ${TRC20_WALLET_ADDRESS:-}
+      TRC20_USDT_CONTRACT: ${TRC20_USDT_CONTRACT:-TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t}
+      TRONGRID_API_KEY: ${TRONGRID_API_KEY:-}
+      TRC20_MIN_CONFIRMATIONS: ${TRC20_MIN_CONFIRMATIONS:-19}
+      PAYMENT_TTL_MINUTES: ${PAYMENT_TTL_MINUTES:-15}
+      PAYMENT_POLL_INTERVAL_SECONDS: ${PAYMENT_POLL_INTERVAL_SECONDS:-30}
+      PAYMENT_MIN_USD: ${PAYMENT_MIN_USD:-1}
+      PAYMENT_MAX_USD: ${PAYMENT_MAX_USD:-10000}
+      # Demo ödeme (anında kredi, istemciye güvenir) — ÜRETİMDE false. Prod'da NODE_ENV=production
+      # olduğundan varsayılan zaten false; yine de explicit tutuyoruz.
+      DEMO_PAYMENTS: ${DEMO_PAYMENTS:-false}
+    volumes:
+      - beylink-data:/app/data
+      - beylink-uploads:/app/uploads
+    networks:
+      - default
+      - edge
+    restart: unless-stopped
+    # Sağlık probu: /health (node:20-alpine'de wget var). Watchdog (../ops/watchdog.sh) okur.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:4000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
+    # api host'a açılmaz; yalnızca web (nginx) ve paylaşımlı Caddy edge'i (tls-check `ask`
+    # kapısı için) üzerinden erişilir — bkz. Caddyfile.
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        # Canonical/OG URL'leri build'e gömülür (frontend/Dockerfile ARG → lib/seo.js).
+        # PUBLIC_BASE_URL .env'de https://beylink.org ise ikisi otomatik hizalanır.
+        VITE_PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-https://beylink.org}
+        VITE_SITE_NAME: ${VITE_SITE_NAME:-BeyLink}
+    container_name: beylink-web
+    # SAĞLIK-KOŞULLU: api sağlıklı olmadan web başlamaz (kademeli açılış).
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      # Yalnız LOKAL build/test için — 127.0.0.1'e bağlı, dışarıya AÇILMAZ.
+      # Prod'da trafik paylaşımlı Caddy'den (edge ağı, beylink-web:80) gelir; bu portun
+      # internete açık kalması Caddy baypası + sahte XFF enjeksiyonu demektir (trust proxy=2).
+      - "127.0.0.1:8501:80"
+    networks:
+      - default
+      - edge
+    restart: unless-stopped
+    # Sağlık probu: nginx SPA kökü (backend'den bağımsız).
+    # 127.0.0.1 (localhost DEĞİL): nginx `listen 80` yalnız IPv4; localhost ::1'e çözülüp reddedilir.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # --- WATCHDOG (servis bekçisi — projenin İÇİNDE, up ile otomatik kalkar) ---
+  # KENDİ iki servisini (beylink-api/beylink-web) izler; çökeni/durmuşu/unhealthy'yi restart eder,
+  # 3 başarısız denemede park+loglar. Detay: ../ops/README.md. Kendisi restart:unless-stopped ile ayakta.
+  watchdog:
+    image: docker:cli
+    container_name: beylink-watchdog
+    restart: unless-stopped
+    # Watchdog EN SON, ikisi de sağlıklı olunca kalkar.
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    environment:
+      - WATCHDOG_SERVICES=beylink-api beylink-web
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock   # ⚠ tam Docker kontrolü — güvenlik notu README'de
+      - ../ops/watchdog.sh:/watchdog.sh:ro
+      - beylink-watchdog-state:/state
+    command: ["sh", "/watchdog.sh", "--loop"]
+    networks:
+      - default
+
+volumes:
+  beylink-data:
+  beylink-uploads:
+  beylink-watchdog-state:
+
+# Paylaşımlı VPS edge ağı (§G6) — aynı Caddy örneğinin önünde birden çok proje (ör. NoLnk)
+# barınabilir. Sunucuda önce oluşturulmalı: `docker network create edge`. Yerel/tek-proje
+# geliştirmede bu ağ kullanılmaz (yalnız `web`'in 8501 portu yeterli); prod'da Caddy container'ı
+# da bu ağa katılıp `beylink-web`/`beylink-api` adlarını çözer.
+networks:
+  edge:
+    external: true
